@@ -67,8 +67,8 @@ An intelligent, AI-powered trip planning application built for the Google Cloud 
 ### ⚡ Fast Setup (5 minutes)
 ```bash
 # 1. Clone and navigate
-git clone https://github.com/YOUR_USERNAME/YOUR_REPOSITORY_NAME.git
-cd YOUR_REPOSITORY_NAME
+git clone (https://github.com/pranjalwagh/AI-TRIP-PLANNER.git)
+cd AI-TRIP-PLANNER
 
 # 2. Setup Python environment
 python -m venv venv
