@@ -1040,6 +1040,27 @@ def get_todays_weather(destination: str) -> dict:
         return {"error": f"Could not retrieve weather: {e}"}
 
 
+@app.route('/api/maps-key')
+def get_maps_api_key():
+    """Securely serve Google Maps API key to authenticated users only."""
+    if 'user_id' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    return jsonify({"apiKey": os.environ.get('GOOGLE_MAPS_API_KEY')})
+
+@app.route('/api/firebase-config')
+def get_firebase_config():
+    """Securely serve Firebase configuration."""
+    config = {
+        "apiKey": os.environ.get('FIREBASE_API_KEY'),
+        "authDomain": os.environ.get('FIREBASE_AUTH_DOMAIN'),
+        "projectId": os.environ.get('FIREBASE_PROJECT_ID'),
+        "storageBucket": os.environ.get('FIREBASE_STORAGE_BUCKET'),
+        "messagingSenderId": os.environ.get('FIREBASE_MESSAGING_SENDER_ID'),
+        "appId": os.environ.get('FIREBASE_APP_ID')
+    }
+    return jsonify(config)
+
 @app.route('/adjust-for-weather', methods=['POST'])
 def adjust_for_weather():
     """

@@ -413,21 +413,18 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyCLGw84oAfsi1hovFmFxedo6V_J-luj_Sg",
-            authDomain: "principal-lane-470311-j4.firebaseapp.com",
-            projectId: "principal-lane-470311-j4",
-            storageBucket: "principal-lane-470311-j4.firebasestorage.app",
-            messagingSenderId: "215616135597",
-            appId: "1:215616135597:web:99558a378db116fccdc124",
-        };
+        // Fetch Firebase configuration securely from backend
+        async function initializeFirebase() {
+            try {
+                const response = await fetch('/api/firebase-config');
+                const firebaseConfig = await response.json();
+                
+                const app = initializeApp(firebaseConfig);
+                const auth = getAuth(app);
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-
-        onAuthStateChanged(auth, (user) => {
-            const authSection = document.getElementById('authSection');
-            if (user) {
+                onAuthStateChanged(auth, (user) => {
+                    const authSection = document.getElementById('authSection');
+                    if (user) {
                 // User is signed in - THIS IS THE LINK WE ARE FIXING
                 authSection.innerHTML = `
                     <span style="color: #2d6cdf; font-weight: 600; margin-right: 1em;">
@@ -453,6 +450,14 @@
                 window.location.href = "/login";
             } catch (error) { console.error("Logout error:", error); }
         }
+        
+        } catch (error) {
+            console.error('Failed to initialize Firebase:', error);
+        }
+        }
+        
+        // Initialize Firebase when page loads
+        initializeFirebase();
     </script>
 </body>
 
