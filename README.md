@@ -108,8 +108,8 @@ flask run
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/YOUR_USERNAME/YOUR_REPOSITORY_NAME.git
-cd YOUR_REPOSITORY_NAME
+git clone (https://github.com/pranjalwagh/AI-TRIP-PLANNER.git)
+cd AI-TRIP-PLANNER
 ```
 
 ### 2. Environment Setup
