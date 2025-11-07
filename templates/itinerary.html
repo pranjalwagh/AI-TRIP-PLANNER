@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Personalized Itinerary</title>
+    <style>
+        /* This CSS is copied from index.html for consistent styling */
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(120deg, #e0eafc, #cfdef3);
+            margin: 0;
+            padding: 1em;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 2em auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+            padding: 2em 2.5em;
+        }
+
+        h1,
+        h2 {
+            text-align: center;
+            color: #2d6cdf;
+        }
+
+        .day-plan {
+            background: #f4f8fb;
+            padding: 1.5em;
+            margin-bottom: 1.5em;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .day-plan h3 {
+            color: #1b4fa0;
+            margin-top: 0;
+            border-bottom: 2px solid #dde6f1;
+            padding-bottom: 0.5em;
+        }
+
+        ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        li {
+            margin-bottom: 1em;
+        }
+
+        li strong {
+            color: #2d6cdf;
+        }
+
+        .actions {
+            text-align: center;
+            margin-top: 2em;
+        }
+
+        button {
+            padding: 0.8em 1.5em;
+            border: none;
+            border-radius: 8px;
+            background: #2d6cdf;
+            color: #fff;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #1b4fa0;
+        }
+
+        .flash-error {
+            background-color: #ffebe9;
+            color: #d82c0d;
+            padding: 1em;
+            border-radius: 8px;
+            margin-bottom: 1.5em;
+            border: 1px solid #ffc1b8;
+        }
+
+        #map {
+            height: 400px;
+            width: 100%;
+            border-radius: 10px;
+            margin-bottom: 2em;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- The 'itinerary_data' variable comes from the app.py render_template call -->
+        <h1>Your Trip to {{ itinerary_data.request.destination }}</h1>
+
+        <div id="map"
+            style="height: 400px; width: 100%; border-radius: 10px; margin-bottom: 2em; background-color: #eee;"></div>
+        <!-- Map will be rendered here -->
+
+        <!-- This block will display flashed messages from the server -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <!-- This checks if the itinerary data exists before trying to display it -->
+        {% if itinerary_data %}
+        <!-- Loop through each day in the plan -->
+        {% for day in itinerary_data.itinerary.plan %}
+        <div class="day-plan">
+            <h3>Day {{ day.day }}: {{ day.theme }} ({{ day.date }})</h3>
+            <ul>
+                <!-- Loop through each activity in the day -->
+                {% for activity in day.activities %}
+                <li>
+                    <strong>{{ activity.time }}:</strong> {{ activity.description }}
+                    <em>({{ activity.location_name }})</em>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+
+        <!-- Display cost breakdown -->
+        <div class="day-plan">
+            <h3>Estimated Cost Breakdown</h3>
+            {% set costs = itinerary_data.itinerary.cost_breakdown %}
+            <ul>
+                <li><strong>Accommodation:</strong> ₹{{ costs.accommodation_estimate_inr | int }}</li>
+                <li><strong>Transport:</strong> ₹{{ costs.transport_estimate_inr | int }}</li>
+                <li><strong>Activities:</strong> ₹{{ costs.activities_estimate_inr | int }}</li>
+                <li><strong>Food:</strong> ₹{{ costs.food_estimate_inr | int }}</li>
+                <hr>
+                <li><strong>Total Estimated Cost:</strong> ₹{{ costs.total_estimate_inr | int }}</li>
+            </ul>
+        </div>
+
+        <!-- Regeneration Section -->
+        <div class="day-plan">
+            <h3>Need Changes?</h3>
+            <p>Enter any adjustments you'd like (e.g., "replace the museum on Day 2 with a shopping trip," or "add a
+                famous temple").</p>
+            <form action="{{ url_for('regenerate_itinerary') }}" method="post" id="regenerateForm">
+                <!-- This hidden input is crucial. It sends the original plan back for context. -->
+                <input type="hidden" name="original_itinerary" value='{{ itinerary_data | tojson | safe }}'>
+
+                <textarea name="change_request" rows="4" placeholder="Your requested changes..."
+                    style="width: 100%; font-size: 1em; padding: 0.5em; border-radius: 6px; border: 1px solid #d0d7de; box-sizing: border-box;"></textarea>
+
+                <button type="submit" style="margin-top: 1em;">Regenerate Itinerary</button>
+            </form>
+        </div>
+
+        <div class="actions">
+            <button id="saveTripBtn" style="margin-right: 1em;">
+                💾 Save Trip
+            </button>
+            <button id="shareBtn" style="margin-right: 1em; display: none;">
+                🔗 Share Trip
+            </button>
+            <button id="bookingBtn" style="padding: 1em 2em; background: linear-gradient(90deg, #28a745 60%, #218838 100%); 
+                color: white; border: none; border-radius: 12px; font-size: 1.1em; font-weight: 600; 
+                cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 16px rgba(40, 167, 69, 0.3); display: none;">
+                💳 Proceed to Booking
+            </button>
+        </div>
+
+        <!-- FIX #2: ADDED THE MISSING saveStatus ELEMENT -->
+        <div id="saveStatus" style="text-align: center; margin-top: 1em; color: green; font-weight: bold;"></div>
+
+        {% else %}
+        <h2>Itinerary not found or has expired.</h2>
+        <p><a href="/">Please go back and create a new plan.</a></p>
+        {% endif %}
+    </div>
+    <script>
+        const regenerateForm = document.getElementById('regenerateForm');
+
+        if (regenerateForm) {
+            const regenerateBtn = regenerateForm.querySelector('button[type="submit"]');
+
+            regenerateForm.addEventListener('submit', function () {
+                regenerateBtn.disabled = true;
+                regenerateBtn.textContent = 'Regenerating...';
+            });
+        }
+    </script>
+    <script>
+        function initMap() {
+            console.log("🗺️ InitMap called!");
+
+            // FIX #1: PUT THE JINJA EXPRESSION ON A SINGLE LINE
+            const itineraryData = {{ itinerary_data | tojson | safe
+        }};
+
+        console.log("Itinerary data:", itineraryData);
+
+        if (!itineraryData || !itineraryData.itinerary || !itineraryData.itinerary.plan || !itineraryData.itinerary.plan.length) {
+            document.getElementById('map').innerHTML = '<p style="text-align:center; padding-top: 150px; color: #666;">Map data is not available for this itinerary.</p>';
+            return;
+        }
+
+        // Check activities for coordinates
+        let allActivities = [];
+        itineraryData.itinerary.plan.forEach((day, dayIndex) => {
+            console.log(`Day ${dayIndex + 1} activities:`, day.activities);
+            if (day.activities) {
+                day.activities.forEach((activity, actIndex) => {
+                    console.log(`Activity ${actIndex + 1}:`, activity);
+                    console.log(`Has coordinates? lat: ${activity.latitude}, lng: ${activity.longitude}`);
+
+                    // Only add activities that have coordinates
+                    if (activity.latitude && activity.longitude) {
+                        allActivities.push(activity);
+                        console.log(`✅ Added activity: ${activity.location_name}`);
+                    } else {
+                        console.log(`❌ No coordinates for: ${activity.location_name || 'Unknown location'}`);
+                    }
+                });
+            }
+        });
+
+        console.log(`Total activities with coordinates: ${allActivities.length}`);
+
+        if (allActivities.length === 0) {
+            document.getElementById('map').innerHTML = '<p style="text-align:center; padding-top: 150px; color: #666;">No location coordinates found in activities.</p>';
+            return;
+        }
+
+        // Set the map's center to the location of the first activity
+        const mapCenter = {
+            lat: allActivities[0].latitude,
+            lng: allActivities[0].longitude
+        };
+        console.log("Map center:", mapCenter);
+
+        const map = new google.maps.Map(document.getElementById("map"), {
+            zoom: 12,
+            center: mapCenter,
+        });
+
+        console.log("✅ Map created, adding markers...");
+
+        // Create a pin (marker) for each activity
+        allActivities.forEach((activity, index) => {
+            console.log(`Creating marker ${index + 1} for:`, activity.location_name);
+            const marker = new google.maps.Marker({
+                position: { lat: activity.latitude, lng: activity.longitude },
+                map: map,
+                title: activity.location_name,
+                label: (index + 1).toString()
+            });
+            console.log(`✅ Marker ${index + 1} created at:`, marker.getPosition().toString());
+        });
+
+        console.log("🎯 All markers created!");
+        }
+    </script>
+
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key={{ maps_api_key }}&callback=initMap"></script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+        import { getAuth } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCLGw84oAfsi1hovFmFxedo6V_J-luj_Sg",
+            authDomain: "principal-lane-470311-j4.firebaseapp.com",
+            projectId: "principal-lane-470311-j4",
+            storageBucket: "principal-lane-470311-j4.firebasestorage.app",
+            messagingSenderId: "215616135597",
+            appId: "1:215616135597:web:99558a378db116fccdc124",
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const saveBtn = document.getElementById('saveTripBtn');
+        const saveStatus = document.getElementById('saveStatus');
+
+        saveBtn.addEventListener('click', async () => {
+            if (!auth.currentUser) {
+                alert('You must be logged in to save a trip.');
+                window.location.href = '/login';
+                return;
+            }
+
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving...';
+            saveStatus.textContent = '';
+
+            try {
+                const idToken = await auth.currentUser.getIdToken(true);
+
+                const itineraryData = {{ itinerary_data | tojson | safe
+            }};
+
+        const response = await fetch('/save-trip-proxy', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${idToken}`
+            },
+            body: JSON.stringify({
+                source: itineraryData.request.source,
+                destination: itineraryData.request.destination,
+                itinerary_content: itineraryData
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to save the trip.');
+        }
+
+        // --- UPDATED LOGIC TO ACTIVATE BOTH SHARE AND BOOKING BUTTONS ---
+
+        const saveData = await response.json();
+        const tripId = saveData.data.trip_id;
+
+        // Update UI text
+        saveBtn.textContent = '✅ Saved!';
+        saveStatus.textContent = 'Trip saved! You can now share or book your trip.';
+
+        // Find and activate the NEW SHARE button
+        const shareBtn = document.getElementById('shareBtn');
+        shareBtn.style.display = 'inline-block';
+        shareBtn.onclick = function () {
+            window.location.href = `/share-trip/${tripId}`;
+        };
+
+        // Find and activate the existing booking button
+        const bookingBtn = document.getElementById('bookingBtn');
+        bookingBtn.style.display = 'inline-block';
+        bookingBtn.onclick = function () {
+            window.location.href = `/payment/${tripId}`;
+        };
+
+                // --- END OF UPDATED LOGIC ---
+    
+            } catch (error) {
+            console.error('Save trip error:', error);
+            saveStatus.textContent = `Error: ${error.message}`;
+            saveBtn.disabled = false;
+            saveBtn.textContent = '💾 Save Trip';
+        }
+        });
+    </script>
+    
+
+</body>
+
+</html>
